@@ -757,7 +757,8 @@ async function startSponsorSchedule(includeIntersectingSegments = false, current
         skippingFunction(currentTime);
     } else {
         let delayTime = timeUntilSponsor * 1000 * (1 / getVideo().playbackRate);
-        if (delayTime < (isFirefoxOrSafari() && !isSafari() ? 750 : 300)) {
+        if (delayTime < (isFirefoxOrSafari() && !isSafari() ? 750 : 300)
+                && shouldAutoSkip(skippingSegments[0])) {
             let forceStartIntervalTime: number | null = null;
             if (isFirefoxOrSafari() && !isSafari() && delayTime > 300) {
                 forceStartIntervalTime = await waitForNextTimeChange();
@@ -1399,7 +1400,7 @@ function updatePreviewBar(): void {
                 showLarger: segment.actionType === ActionType.Poi,
                 description: segment.description,
                 source: segment.source,
-                requiredSegment: requiredSegment && (segment.UUID === requiredSegment || segment.UUID?.startsWith(requiredSegment)),
+                requiredSegment: requiredSegment && (segment.UUID === requiredSegment || segment.UUID?.startsWith(requiredSegment) || requiredSegment.startsWith(segment.UUID)),
                 selectedSegment: selectedSegment && segment.UUID === selectedSegment
             });
         });
@@ -1677,7 +1678,7 @@ function sendTelemetryAndCount(skippingSegments: SponsorTime[], secondsSkipped: 
                 counted = true;
             }
 
-            if (fullSkip) asyncRequestToServer("POST", "/api/viewedVideoSponsorTime?UUID=" + segment.UUID);
+            if (fullSkip) asyncRequestToServer("POST", "/api/viewedVideoSponsorTime?UUID=" + segment.UUID + "&videoID=" + getVideoID());
         }
     }
 }
@@ -2267,7 +2268,8 @@ async function voteAsync(type: number, UUID: SegmentUUID, category?: Category): 
             message: "submitVote",
             type: type,
             UUID: UUID,
-            category: category
+            category: category,
+            videoID: getVideoID()
         }, (response) => {
             if (response.successType === 1) {
                 // Change the sponsor locally
